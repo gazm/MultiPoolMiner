@@ -8,12 +8,12 @@
  
 ====================================================================
 MultiPoolMiner - created by aaronsace 
-LINK: https://github.com/aaronsace/MultiPoolMiner/
+LINK: https://multipoolminer.io
 
 Licensed under the GNU General Public License v3.0
-Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/aaronsace/MultiPoolMiner/blob/master/LICENSE
+Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/LICENSE
 
-README.txt - updated on 18/12/2017 - v1.21.0 - latest version can be found here: https://github.com/aaronsace/MultiPoolMiner/blob/master/README.txt
+README.txt - updated on 27/12/2017 - v1.21.17 - latest version can be found here: https://github.com/MultiPoolMiner/MultiPoolMiner/blob/master/README.txt
 
 ====================================================================
 
@@ -31,18 +31,32 @@ Any bitcoin donations are greatly appreciated: 1MsrCoAt8qM53HUMsUxvy9gMj3QVbHLaz
 ====================================================================
 
 
+INSTALLATION:
+
+1. Download the latest RELEASE (.zip package) from https://github.com/MultiPoolMiner/MultiPoolMiner/releases
+2. Extract it to your Desktop (MultiPoolMiner will NOT work from folders such as "C:\Program Files\")
+3. Make sure you have all pre-requisites installed/updated from the IMPORTANT NOTES section below.
+4. Right-click on the (required) Star.bat file and open it with a Notepad application. Multiple start.bat files are included as examples.
+5. Edit the Start.bat file with your details (such as YOUR username, wallet address, region, worker name, device type). New users should NOT edit anything else. Please see COMMAND LINE OPTIONS below for specification and further details.
+6. Save and close the Start.bat file you just edited.
+7. Launch the Start.bat file you just edited.
+8. Let the benchmarking finish (you will be earning shares even during benchmarking).
+9. Done. You are all set to mine the most profitable coins and maximise your profits using MultiPoolMiner.
+
+
+====================================================================
+
+
 IMPORTANT NOTES:
 
-- As of 6/12/2017, Nicehash is closed down until further notice due to a hack involving 4800 missing Bitcoins. Please remove the "nicehash" parameter from the -poolname command (your chosen list of pools used) in the start.bat file and also remove the Nicehash-only parameters (algorithms) from the -algorithm command such as sianicehash, decrednicehash, pascal.
-
 - It is not recommended but to upgrade from a previous version of MultiPoolMiner, you may simply copy the 'Stats' folder.
-- Having PowerShell 6 installed is now a requirement. Windows 64bit: https://github.com/PowerShell/PowerShell/releases/download/v6.0.0-rc.2/PowerShell-6.0.0-rc.2-win-x64.msi ALL OTHER VERSIONS: https://github.com/PowerShell/PowerShell/releases
+- Having PowerShell 6 installed is now a requirement. Windows 64bit: https://github.com/PowerShell/PowerShell/releases/download/v6.0.0-rc.2/PowerShell-6.0.0-rc.2-win-x64.msi, ALL OTHER VERSIONS: https://github.com/PowerShell/PowerShell/releases
 - Microsoft .NET Framework 4.5.1 or later is required for MultiPoolMiner to function properly. Please update from here: https://www.microsoft.com/en-us/download/details.aspx?id=40773
 - CCMiner (NVIDIA cards only) may need 'MSVCR120.dll' if you don't already have it: https://www.microsoft.com/en-gb/download/details.aspx?id=40784
 - CCMiner (NVIDIA cards only) may need 'VCRUNTIME140.DLL' if you don't already have it: https://www.microsoft.com/en-us/download/details.aspx?id=48145
 - You may need 'excavator.exe' if you don't already have it: https://github.com/nicehash/excavator/releases
 - It is highly recommended to set Virtual Memory size in Windows to at least 16 GB in multi-GPU systems: Computer Properties -> Advanced System Settings -> Performance -> Advanced -> Virtual Memory
-- Please see the FAQ section on the bottom of this page before submitting bugs and feature requests on Github. https://github.com/aaronsace/MultiPoolMiner/issues 
+- Please see the FAQ section on the bottom of this page before submitting bugs and feature requests on Github. https://github.com/MultiPoolMiner/MultiPoolMiner/issues 
 - Logs and Stats are produced in text format; use them when submitting issues.
 - Currently mining with upto 6 GPUs is fully supported. Where required advanced users can create additional or amend current miner files to support mining with more than 6 graphics cards.
 
@@ -55,32 +69,38 @@ COMMAND LINE OPTIONS (case-insensitive, see Sample Usage section below for an ex
 -region [Europe/US/Asia]
 	Choose your region or the region closest to you.
 
--poolname [miningpoolhub,miningpoolhubcoins,zpool,hashrefinery,nicehash]
+-poolname [miningpoolhub,miningpoolhubcoins,zpool,hashrefinery,nicehash,ahashpool]
 	The following pools are currently supported: 
 	## MiningPoolHub https://miningpoolhub.com/ 
 	        The 'miningpoolhub' parameter uses the 17xxx ports therefore allows the pool to decide on which coin is mined of a specific algorithm, while 'miningpoolhubcoins' allows for MultiPoolMiner to calculate and determine what is mined from all of the available coins (20xxx ports). Usage of the 'miningpoolhub' parameter is recommended as the pool have internal rules against switching before a block is found therefore prevents its users losing shares submitted due to early switching. A registered account is required when mining on MiningPoolHub (username must be provided using the -username command, see below).
-	## Zpool http://www.zpool.ca/ (Bitcoin address must be provided using the -address command, see below)
-	## Hash Refinery http://pool.hashrefinery.com (Bitcoin address must be provided using the -address command, see below)
-	## Nicehash https://www.nicehash.com/ (Bitcoin address must be provided using the -address command, see below)
+	## Zpool http://www.zpool.ca/ (Bitcoin address must be provided using the -wallet command, see below)
+	## Hash Refinery http://pool.hashrefinery.com (Bitcoin address must be provided using the -wallet command, see below)
+	## Nicehash https://www.nicehash.com/ (Bitcoin address must be provided using the -wallet command, see below)
+	## Ahashpool https://www.ahashpool.com/ (Bitcoin address must be provided using the -wallet command, see below)
+	## Upcoming pool support for: BlockMunch (http://www.blockmunch.club/) | ItalYiiMP (http://www.italyiimp.com/)
 	
 	IMPORTANT: The specified pool here will be used as default (preferred) but this does not rule out other pools to be included. Selecting multiple pools is allowed and will be used on a failover basis OR if first specified pool does not support that algorithm/coin. See the -algorithm command below for further details and example.
+	
+-ExcludePoolName
+	Same as the -poolname command but it is used to exclude unwanted mining pools (please see above).
 
 -username 
 	Your username you use to login to MiningPoolHub.
 
 -workername
-	To identify your mining rig.
+	To identify your mining rig.	
 
 -wallet
 	Your Bitcoin payout address. Required when mining on Zpool, Hash Refinery and Nicehash.
 	
 -SSL
-	Secure connection option.
+	Specifying the -ssl command (without a boolean value of true or false) will restrict the miner application list to include only the miners that support secure connection.
 
 -type [AMD,NVIDIA,CPU]
 	Choose the relevant GPU(s) and/or CPU mining.
 
 -algorithm
+        Supported algorithms sorted by pool can be found at https://multipoolminer.io/algorithms
 	The following algorithms are currently supported: 
 	Bitcore, Blakecoin, Blake2s, BlakeVanilla, C11, CryptoNight, Ethash, X11, Decred, Equihash, Groestl, HMQ1725, JHA, Keccak, Lbry, Lyra2RE2, Lyra2z, MyriadGroestl, NeoScrypt, Nist5, Pascal, Polytimos, Quark, Qubit, Scrypt, SHA256, Sia, Sib, Skunk, Skein, Timetravel, Tribus, BlakeVanilla, Veltor, X11, X11evo, X17, Yescrypt
 	Special parameters: 
@@ -89,14 +109,23 @@ COMMAND LINE OPTIONS (case-insensitive, see Sample Usage section below for an ex
 	siaclaymore - enable mining Sia as a secondary coin with Claymore Dual ethash miner on MiningPoolHub
 	Note that the pool selected also needs to support the required algorithm(s) or your specified pool (-poolname) will be ignored when mining certain algorithms. The -algorithm command is higher in execution hierarchy and can override pool selection. This feature comes handy when you mine on Zpool but also want to mine ethash coins (which is not supported by Zpool). WARNING! If you add all algorithms listed above, you may find your earnings spread across 3 different pools regardless what pool(s) you specified with the -poolname command.
 	
+-ExcludeAlgorithm
+	Same as the -algorithm command but it is used to exclude unwanted algorithms (please see above).
+	
 -currency [BTC,USD,EUR,GBP,ETH ...]
 	Choose the default currency or currencies your profit stats will be shown in.
 
 -interval
 	MultiPoolMiner's update interval in seconds. This is a universal timer for running the entire script (downloading/processing APIs, calculation etc).  It also determines how long a benchmark is run for each miner file (miner/algorithm/coin). Default is 60.
+	
+-delay
+	Specify the number of seconds required to pass before opening each miner. It is useful if cards are sensitive to switching and need some extra time to recover (eg. clear DAG files from memory)
 
 -donate
-	Donation of mining time in minutes per day to aaronsace. Default is 24. The downloaded miner software can have their own donation system built in. Check the readme file of the respective miner used for more details.
+	Donation of mining time in minutes per day to aaronsace. Default is 24, minimum is 10 minutes per day (less than 0.7% fee). The downloaded miner software can have their own donation system built in. Check the readme file of the respective miner used for more details.
+	
+-proxy
+	Specify your proxy address if applicable, i.e http://192.0.0.1:8080
 
 -watchdog
         Include this command to enable the watchdog feature which detects and handles miner and other related failures.
@@ -112,14 +141,24 @@ COMMAND LINE OPTIONS (case-insensitive, see Sample Usage section below for an ex
 	
 SAMPLE USAGE (check "start.bat" file in root folder):
 
+############ START OF CONTENT OF START.BAT ############
+cd /d %~dp0
+
 setx GPU_FORCE_64BIT_PTR 1
 setx GPU_MAX_HEAP_SIZE 100
 setx GPU_USE_SYNC_OBJECTS 1
 setx GPU_MAX_ALLOC_PERCENT 100
 setx GPU_SINGLE_ALLOC_PERCENT 100
 
-powershell -version 5.0 -noexit -executionpolicy bypass -windowstyle maximized -command "&.\multipoolminer.ps1 -wallet 1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb -username aaronsace -workername multipoolminer -ssl -region europe -currency btc,usd,eur -type amd,nvidia,cpu -poolname miningpoolhub,miningpoolhubcoins,zpool,nicehash -algorithm cryptonight,decred,decrednicehash,ethash,ethash2gb,equihash,groestl,lbry,lyra2z,neoscrypt,pascal,sia,siaclaymore,sianicehash,sib -donate 10"
+set "command=& .\multipoolminer.ps1 -wallet 1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb -username aaronsace -workername multipoolminer -region europe -currency btc,usd,eur -type amd,nvidia,cpu -poolname miningpoolhub,miningpoolhubcoins,zpool,nicehash -algorithm cryptonight,decred,decrednicehash,ethash,ethash2gb,equihash,groestl,lbry,lyra2re2,lyra2z,neoscrypt,pascal,sia,siaclaymore,sianicehash,sib,skunk -donate 24 -watchdog -switchingprevention 2"
 
+pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
+powershell -version 5.0 -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
+msiexec -i https://github.com/PowerShell/PowerShell/releases/download/v6.0.0-rc.2/PowerShell-6.0.0-rc.2-win-x64.msi -qb!
+pwsh -noexit -executionpolicy bypass -windowstyle maximized -command "%command%"
+
+pause
+############ END OF CONTENT OF START.BAT ############
 
 ====================================================================
 
