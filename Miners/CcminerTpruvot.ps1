@@ -25,6 +25,7 @@ $Commands = [PSCustomObject]@{
     "nist5" = "" #Nist5
     "polytimos" = ""
     "pascal" = "" #Pascal
+    "phi" = "" #PHI
     "sia" = "" #Sia
     "sib" = "" #Sib
     "skein" = "" #Skein
@@ -34,7 +35,7 @@ $Commands = [PSCustomObject]@{
     "veltor" = "" #Veltor
     "x11evo" = "" #X11evo
     "x17" = "" #X17
-    "yescrypt" = "" #Yescrypt
+    #"yescrypt" = "" #Yescrypt
     #"xevan" = "" #Xevan
 }
 
