@@ -59,7 +59,7 @@ function Set-Stat {
         if ($ChangeDetection -and $Value -eq $Stat.Live) {$Updated -eq $Stat.updated}
 
         if ($Value -lt $ToleranceMin -or $Value -gt $ToleranceMax) {
-            Write-Warning "Stat file ($Name) was not updated because the value ($([Decimal]$Value)) is outside fault tolerance. "
+            Write-Warning "Stat file ($Name) was not updated because the value ($([Decimal]$Value)) is outside fault tolerance ($([Int]$ToleranceMin) ... $([Int]$ToleranceMax)). "
         }
         else {
             $Span_Minute = [Math]::Min($Duration.TotalMinutes / [Math]::Min($Stat.Duration.TotalMinutes, 1), 1)
@@ -392,15 +392,15 @@ function Get-Region {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
-        [String]$Location = ""
+        [String]$Region = ""
     )
 
-    $Locations = Get-Content "Regions.txt" | ConvertFrom-Json
+    $Regions = Get-Content "Regions.txt" | ConvertFrom-Json
 
-    $Location = (Get-Culture).TextInfo.ToTitleCase(($Location -replace "-", " " -replace "_", " ")) -replace " "
+    $Region = (Get-Culture).TextInfo.ToTitleCase(($Region -replace "-", " " -replace "_", " ")) -replace " "
 
-    if ($Locations.$Location) {$Locations.$Location}
-    else {$Location}
+    if ($Regions.$Region) {$Regions.$Region}
+    else {$Region}
 }
 
 class Miner {
