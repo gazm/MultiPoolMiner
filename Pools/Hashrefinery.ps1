@@ -8,18 +8,18 @@ try {
     $HashRefinery_Request = Invoke-RestMethod "http://pool.hashrefinery.com/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
-    Write-Warning "Pool API ($Name) has failed. "
+    Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
 if (($HashRefinery_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
-    Write-Warning "Pool API ($Name) returned nothing. "
+    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
 $HashRefinery_Regions = "us"
 
-$HashRefinery_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {
+$HashRefinery_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Hashrefinery_Request.$_.hashrate -gt 0} | ForEach-Object {
     $HashRefinery_Host = "hashrefinery.com"
     $HashRefinery_Port = $HashRefinery_Request.$_.port
     $HashRefinery_Algorithm = $HashRefinery_Request.$_.name

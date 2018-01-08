@@ -8,18 +8,18 @@ try {
     $MiningPoolHubCoins_Request = Invoke-RestMethod "http://miningpoolhub.com/index.php?page=api&action=getminingandprofitsstatistics" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
-    Write-Warning "Pool API ($Name) has failed. "
+    Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
 if (($MiningPoolHubCoins_Request.return | Measure-Object).Count -le 1) {
-    Write-Warning "Pool API ($Name) returned nothing. "
+    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
 $MiningPoolHubCoins_Regions = "europe", "us", "asia"
 
-$MiningPoolHubCoins_Request.return | ForEach-Object {
+$MiningPoolHubCoins_Request.return | Where-Object {$_.pool_hash -gt 0} |ForEach-Object {
     $MiningPoolHubCoins_Hosts = $_.host_list.split(";")
     $MiningPoolHubCoins_Port = $_.port
     $MiningPoolHubCoins_Algorithm = $_.algo

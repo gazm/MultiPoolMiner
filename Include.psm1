@@ -5,6 +5,47 @@ Set-Location (Split-Path $MyInvocation.MyCommand.Path)
 
 Add-Type -Path .\OpenCL\*.cs
 
+Function Write-Log {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)][ValidateNotNullOrEmpty()][Alias("LogContent")][string]$Message,
+        [Parameter(Mandatory=$false)][ValidateSet("Error","Warn","Info","Verbose","Debug")][string]$Level = "Info"
+    )
+
+    Begin { }
+    Process {
+        $filename = ".\Logs\MultiPoolMiner-$(Get-Date -Format "yyyy-MM-dd").txt"
+        $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+        if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
+        
+        switch($Level) {
+            'Error' {
+                $LevelText = 'ERROR:'
+                Write-Error -Message $Message
+            }
+            'Warn' {
+                $LevelText = 'WARNING:'
+                Write-Warning -Message $Message
+            }
+            'Info' {
+                $LevelText = 'INFO:'
+                Write-Information -MessageData $Message
+            }
+            'Verbose' {
+                $LevelText = 'VERBOSE:'
+                Write-Verbose -Message $Message
+            }
+            'Debug' {
+                $LevelText = 'DEBUG:'
+                Write-Debug -Message $Message
+            }
+        }
+        "$date $LevelText $Message" | Out-File -FilePath $filename -Append
+    }
+    End {}
+}
+
 function Set-Stat {
     [CmdletBinding()]
     param(
@@ -59,7 +100,7 @@ function Set-Stat {
         if ($ChangeDetection -and $Value -eq $Stat.Live) {$Updated -eq $Stat.updated}
 
         if ($Value -lt $ToleranceMin -or $Value -gt $ToleranceMax) {
-            Write-Warning "Stat file ($Name) was not updated because the value ($([Decimal]$Value)) is outside fault tolerance ($([Int]$ToleranceMin) ... $([Int]$ToleranceMax)). "
+            Write-Log -Level Warn "Stat file ($Name) was not updated because the value ($([Decimal]$Value)) is outside fault tolerance ($([Int]$ToleranceMin) ... $([Int]$ToleranceMax)). "
         }
         else {
             $Span_Minute = [Math]::Min($Duration.TotalMinutes / [Math]::Min($Stat.Duration.TotalMinutes, 1), 1)
@@ -95,7 +136,7 @@ function Set-Stat {
         }
     }
     catch {
-        if (Test-Path $Path) {Write-Warning "Stat file ($Name) is corrupt and will be reset. "}
+        if (Test-Path $Path) {Write-Log -Level Warn "Stat file ($Name) is corrupt and will be reset. "}
 
         $Stat = [PSCustomObject]@{
             Live = $Value
@@ -214,6 +255,32 @@ filter ConvertTo-Hash {
         3 {"{0:n2} GH" -f ($Hash / [Math]::Pow(1000, 3))}
         4 {"{0:n2} TH" -f ($Hash / [Math]::Pow(1000, 4))}
         Default {"{0:n2} PH" -f ($Hash / [Math]::Pow(1000, 5))}
+    }
+}
+
+function ConvertTo-LocalCurrency { 
+    [CmdletBinding()]
+    # To get same numbering scheme reagardless of value BTC value (size) to dermine formatting
+    # Use $Offset to add/remove decimal places
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [Double]$Number, 
+        [Parameter(Mandatory = $true)]
+        [Double]$BTCRate,
+        [Parameter(Mandatory = $false)]
+        [Int]$Offset        
+    )
+
+    $Number = $Number * $BTCRate
+    
+    switch ([math]::truncate([math]::log($BTCRate, [Math]::Pow(10, 1))) -2 + $Offset) {
+        default {$Number.ToString("N0")}
+        0 {$Number.ToString("N5")}
+        1 {$Number.ToString("N4")}
+        2 {$Number.ToString("N3")}
+        3 {$Number.ToString("N2")}
+        4 {$Number.ToString("N1")}
     }
 }
 

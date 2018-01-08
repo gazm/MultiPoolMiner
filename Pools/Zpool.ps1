@@ -8,18 +8,18 @@ try {
     $Zpool_Request = Invoke-RestMethod "http://www.zpool.ca/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
 }
 catch {
-    Write-Warning "Pool API ($Name) has failed. "
+    Write-Log -Level Warn "Pool API ($Name) has failed. "
     return
 }
 
 if (($Zpool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) {
-    Write-Warning "Pool API ($Name) returned nothing. "
+    Write-Log -Level Warn "Pool API ($Name) returned nothing. "
     return
 }
 
 $Zpool_Regions = "us"
 
-$Zpool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {
+$Zpool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Zpool_Request.$_.hashrate -gt 0} |ForEach-Object {
     $Zpool_Host = "mine.zpool.ca"
     $Zpool_Port = $Zpool_Request.$_.port
     $Zpool_Algorithm = $Zpool_Request.$_.name
