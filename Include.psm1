@@ -5,6 +5,47 @@ Set-Location (Split-Path $MyInvocation.MyCommand.Path)
 
 Add-Type -Path .\OpenCL\*.cs
 
+Function Write-Log {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)][ValidateNotNullOrEmpty()][Alias("LogContent")][string]$Message,
+        [Parameter(Mandatory = $false)][ValidateSet("Error", "Warn", "Info", "Verbose", "Debug")][string]$Level = "Info"
+    )
+
+    Begin { }
+    Process {
+        $filename = ".\Logs\MultiPoolMiner-$(Get-Date -Format "yyyy-MM-dd").txt"
+        $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+        if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
+
+        switch ($Level) {
+            'Error' {
+                $LevelText = 'ERROR:'
+                Write-Error -Message $Message
+            }
+            'Warn' {
+                $LevelText = 'WARNING:'
+                Write-Warning -Message $Message
+            }
+            'Info' {
+                $LevelText = 'INFO:'
+                Write-Information -MessageData $Message
+            }
+            'Verbose' {
+                $LevelText = 'VERBOSE:'
+                Write-Verbose -Message $Message
+            }
+            'Debug' {
+                $LevelText = 'DEBUG:'
+                Write-Debug -Message $Message
+            }
+        }
+        "$date $LevelText $Message" | Out-File -FilePath $filename -Append
+    }
+    End {}
+}
+
 function Set-Stat {
     [CmdletBinding()]
     param(
@@ -59,7 +100,7 @@ function Set-Stat {
         if ($ChangeDetection -and $Value -eq $Stat.Live) {$Updated -eq $Stat.updated}
 
         if ($Value -lt $ToleranceMin -or $Value -gt $ToleranceMax) {
-            Write-Warning "Stat file ($Name) was not updated because the value ($([Decimal]$Value)) is outside fault tolerance ($([Int]$ToleranceMin) ... $([Int]$ToleranceMax)). "
+            Write-Log -Level Warn "Stat file ($Name) was not updated because the value ($([Decimal]$Value)) is outside fault tolerance ($([Int]$ToleranceMin) ... $([Int]$ToleranceMax)). "
         }
         else {
             $Span_Minute = [Math]::Min($Duration.TotalMinutes / [Math]::Min($Stat.Duration.TotalMinutes, 1), 1)
@@ -95,7 +136,7 @@ function Set-Stat {
         }
     }
     catch {
-        if (Test-Path $Path) {Write-Warning "Stat file ($Name) is corrupt and will be reset. "}
+        if (Test-Path $Path) {Write-Log -Level Warn "Stat file ($Name) is corrupt and will be reset. "}
 
         $Stat = [PSCustomObject]@{
             Live = $Value
@@ -158,38 +199,34 @@ function Get-ChildItemContent {
         [Hashtable]$Parameters = @{}
     )
 
+    function Invoke-ExpressionRecursive ($Expression) {
+        if ($Expression -is [String]) {
+            if ((Invoke-Expression "`"$Expression`"") -ne $Expression) {
+                try {$Expression = Invoke-Expression $Expression}
+                catch {$Expression = Invoke-Expression "`"$Expression`""}
+            }
+        }
+        elseif ($Expression -is [PSCustomObject]) {
+            $Expression | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | ForEach-Object {
+                $Expression.$_ = Invoke-ExpressionRecursive $Expression.$_}
+        }
+        return $Expression
+    }
+
     Get-ChildItem $Path | ForEach-Object {
         $Name = $_.BaseName
         $Content = @()
         if ($_.Extension -eq ".ps1") {
             $Content = & {
-                $Parameters.Keys | ForEach-Object {Set-Variable $_ $Parameters[$_]}
+                $Parameters.Keys | ForEach-Object {Set-Variable $_ $Parameters.$_}
                 & $_.FullName @Parameters
             }
         }
         else {
             $Content = & {
-                $Parameters.Keys | ForEach-Object {Set-Variable $_ $Parameters[$_]}
+                $Parameters.Keys | ForEach-Object {Set-Variable $_ $Parameters.$_}
                 try {
-                    ($_ | Get-Content | ConvertFrom-Json) | ForEach-Object {
-                        $Item = $_
-                        $ItemKeys = $Item.PSObject.Properties.Name.Clone()
-                        $ItemKeys | ForEach-Object {
-                            if ($Item.$_ -is [String]) {
-                                $Item.$_ = Invoke-Expression "`"$($Item.$_)`""
-                            }
-                            elseif ($Item.$_ -is [PSCustomObject]) {
-                                $Property = $Item.$_
-                                $PropertyKeys = $Property.PSObject.Properties.Name
-                                $PropertyKeys | ForEach-Object {
-                                    if ($Property.$_ -is [String]) {
-                                        $Property.$_ = Invoke-Expression "`"$($Property.$_)`""
-                                    }
-                                }
-                            }
-                        }
-                        $Item
-                    }
+                    ($_ | Get-Content | ConvertFrom-Json) | ForEach-Object {Invoke-ExpressionRecursive $_}
                 }
                 catch [ArgumentException] {
                     $null
@@ -214,6 +251,36 @@ filter ConvertTo-Hash {
         3 {"{0:n2} GH" -f ($Hash / [Math]::Pow(1000, 3))}
         4 {"{0:n2} TH" -f ($Hash / [Math]::Pow(1000, 4))}
         Default {"{0:n2} PH" -f ($Hash / [Math]::Pow(1000, 5))}
+    }
+}
+
+function ConvertTo-LocalCurrency { 
+    [CmdletBinding()]
+    # To get same numbering scheme reagardless of value BTC value (size) to dermine formatting
+    # Use $Offset to add/remove decimal places
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [Double]$Number, 
+        [Parameter(Mandatory = $true)]
+        [Double]$BTCRate,
+        [Parameter(Mandatory = $false)]
+        [Int]$Offset        
+    )
+
+    $Number = $Number * $BTCRate
+    
+    switch ([math]::truncate(10 - $Offset - [math]::log($BTCRate, [Math]::Pow(10, 1)))) {
+        0 {$Number.ToString("N0")}
+        1 {$Number.ToString("N1")}
+        2 {$Number.ToString("N2")}
+        3 {$Number.ToString("N3")}
+        4 {$Number.ToString("N4")}
+        5 {$Number.ToString("N5")}
+        6 {$Number.ToString("N6")}
+        7 {$Number.ToString("N7")}
+        8 {$Number.ToString("N8")}
+        Default {$Number.ToString("N9")}
     }
 }
 

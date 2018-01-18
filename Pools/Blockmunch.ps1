@@ -1,5 +1,13 @@
 ﻿using module ..\Include.psm1
 
+param(
+    [alias("Wallet")]
+    [String]$BTC, 
+    [alias("WorkerName")]
+    [String]$Worker, 
+    [TimeSpan]$StatSpan
+)
+
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
 
 $Blockmunch_Request = [PSCustomObject]@{}
@@ -19,8 +27,8 @@ if (($Blockmunch_Request | Get-Member -MemberType NoteProperty -ErrorAction Igno
 
 $Blockmunch_Regions = "us"
 
-$Blockmunch_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | ForEach-Object {
-    $Blockmunch_Host = "mine.blockmunch.club"
+$Blockmunch_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Blockmunch_Request.$_.hashrate -gt 0} | ForEach-Object {
+    $Blockmunch_Host = "blockmunch.club"
     $Blockmunch_Port = $Blockmunch_Request.$_.port
     $Blockmunch_Algorithm = $Blockmunch_Request.$_.name
     $Blockmunch_Algorithm_Norm = Get-Algorithm $Blockmunch_Algorithm
@@ -47,7 +55,7 @@ $Blockmunch_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | 
         $Blockmunch_Region = $_
         $Blockmunch_Region_Norm = Get-Region $Blockmunch_Region
 
-        if ($Wallet) {
+        if ($BTC) {
             [PSCustomObject]@{
                 Algorithm     = $Blockmunch_Algorithm_Norm
                 Info          = $Blockmunch_Coin
@@ -55,10 +63,10 @@ $Blockmunch_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | 
                 StablePrice   = $Stat.Week
                 MarginOfError = $Stat.Week_Fluctuation
                 Protocol      = "stratum+tcp"
-                Host          = "$Blockmunch_Algorithm.$Blockmunch_Host"
+                Host          = $Blockmunch_Host
                 Port          = $Blockmunch_Port
-                User          = $Wallet
-                Pass          = "$WorkerName,c=BTC"
+                User          = $BTC
+                Pass          = "$Worker,c=BTC"
                 Region        = $Blockmunch_Region_Norm
                 SSL           = $false
                 Updated       = $Stat.Updated
@@ -66,3 +74,4 @@ $Blockmunch_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | 
         }
     }
 }
+Sleep 0
