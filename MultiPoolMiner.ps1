@@ -54,6 +54,8 @@ param(
     [Alias("Uri", "Url")]
     [String]$MinerStatusUrl = "https://multipoolminer.io/monitor/miner.php",
     [Parameter(Mandatory = $false)]
+    [String]$MinerStatusKey = "",
+    [Parameter(Mandatory = $false)]
     [Double]$SwitchingPrevention = 1 #zero does not prevent miners switching
 )
 
@@ -78,6 +80,9 @@ $Rates = [PSCustomObject]@{BTC = [Double]1}
 
 #Start the log
 Start-Transcript ".\Logs\$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt"
+
+#Set process priority to BelowNormal to avoid hash rate drops on systems with weak CPUs
+(Get-Process -Id $Global:PID).priorityclass = "BelowNormal"
 
 if (Get-Command "Unblock-File" -ErrorAction SilentlyContinue) {Get-ChildItem . -Recurse | Unblock-File}
 if ((Get-Command "Get-MpPreference" -ErrorAction SilentlyContinue) -and (Get-MpComputerStatus -ErrorAction SilentlyContinue) -and (Get-MpPreference).ExclusionPath -notcontains (Convert-Path .)) {
@@ -118,6 +123,7 @@ while ($true) {
             Delay               = $Delay
             Watchdog            = $Watchdog
             MinerStatusURL      = $MinerStatusURL
+            MinerStatusKey      = $MinerStatusKey
             SwitchingPrevention = $SwitchingPrevention
         } | Select-Object -ExpandProperty Content
     }
@@ -141,9 +147,14 @@ while ($true) {
             Delay               = $Delay
             Watchdog            = $Watchdog
             MinerStatusURL      = $MinerStatusURL
+            MinerStatusKey      = $MinerStatusKey
             SwitchingPrevention = $SwitchingPrevention
         }
     }
+
+    # For backwards compatibility, set the MinerStatusKey to $Wallet if it's not specified
+    if ($Wallet -and -not $Config.MinerStatusKey) { $Config.MinerStatusKey = $Wallet }
+
     Get-ChildItem "Pools" | Where-Object {-not $Config.Pools.($_.BaseName)} | ForEach-Object {
         $Config.Pools | Add-Member $_.BaseName (
             [PSCustomObject]@{
@@ -577,7 +588,7 @@ while ($true) {
         }
     }
 
-    if ($Config.MinerStatusURL) {& .\ReportStatus.ps1 -Address $Wallet -WorkerName $WorkerName -ActiveMiners $ActiveMiners -Miners $Miners -MinerStatusURL $Config.MinerStatusURL}
+    if ($Config.MinerStatusURL -and $Config.MinerStatusKey) {& .\ReportStatus.ps1 -Key $Config.MinerStatusKey -WorkerName $WorkerName -ActiveMiners $ActiveMiners -Miners $Miners -MinerStatusURL $Config.MinerStatusURL}
 
     #Display mining information
     $Miners | Where-Object {$_.Profit -ge 1E-5 -or $_.Profit -eq $null} | Sort-Object -Descending Type, Profit_Bias | Format-Table -GroupBy Type (
@@ -637,7 +648,7 @@ while ($true) {
     [GC]::Collect()
 
     #Do nothing for a few seconds as to not overload the APIs and display miner download status
-    Write-Log "Waiting for $Config.Interval seconds to start next run"
+    Write-Log "Waiting for $($Config.Interval) seconds to start next run"
     for ($i = $Strikes; $i -gt 0 -or $Timer -lt $StatEnd; $i--) {
         if ($Downloader) {$Downloader | Receive-Job}
         Start-Sleep 10
@@ -649,16 +660,16 @@ while ($true) {
     $ActiveMiners | ForEach-Object {
         $Miner = $_
         $Miner.Speed_Live = 0
-        $Miner_HashRate = [PSCustomObject]@{}
+        $Miner_Data = [PSCustomObject]@{}
 
         if ($Miner.New) {$Miner.Benchmarked++}
 
         if ($Miner.Process -and -not $Miner.Process.HasExited) {
-            $Miner_HashRate = $Miner.GetHashRate($Miner.Algorithm, ($Miner.New -and $Miner.Benchmarked -lt $Strikes))
-            $Miner.Speed_Live = $Miner_HashRate.PSObject.Properties.Value
+            $Miner_Data = $Miner.GetMinerData($Miner.Algorithm, ($Miner.New -and $Miner.Benchmarked -lt $Strikes))
+            $Miner.Speed_Live = $Miner_Data.HashRate.PSObject.Properties.Value
 
-            $Miner.Algorithm | Where-Object {$Miner_HashRate.$_} | ForEach-Object {
-                $Stat = Set-Stat -Name "$($Miner.Name)_$($_)_HashRate" -Value $Miner_HashRate.$_ -Duration $StatSpan -FaultDetection $true
+            $Miner.Algorithm | Where-Object {$Miner_Data.HashRate.$_} | ForEach-Object {
+                $Stat = Set-Stat -Name "$($Miner.Name)_$($_)_HashRate" -Value $Miner_Data.HashRate.$_ -Duration $StatSpan -FaultDetection $true
 
                 #Update watchdog timer
                 $Miner_Name = $Miner.Name
