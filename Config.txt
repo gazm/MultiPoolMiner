@@ -47,7 +47,7 @@
   "MinerName": "$MinerName",
   "PoolName": ["AHashPool","MiningPoolHub","MiningPoolHubCoins","NiceHash","Zpool"],
   "ExcludeAlgorithm": "$ExcludeAlgorithm",
-  "ExcludeMinerName": ["CcminerLyra2z","CcminerLyra2RE2","Equihash-EWBF"],
+  "ExcludeMinerName": ["CcminerLyra2z","CcminerLyra2RE2","Ewbf"],
   "ExcludePoolName": "$ExcludePoolName",
   "Currency": ["btc", "usd"],
   "Donate": "10",
