@@ -29,7 +29,7 @@
       "API_Key": "$API_Key"
     },
     "NiceHash": {
-      "BTC": "$Wallet",
+      "BTC": "3BRBab4XKSFUZ64TyKhd9ky7jKQCy5E1CZ",
       "Worker": "$WorkerName"
     },
     "Zpool": {
