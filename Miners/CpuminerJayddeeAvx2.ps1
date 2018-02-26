@@ -1,7 +1,12 @@
 ﻿using module ..\Include.psm1
 
+<<<<<<< HEAD:Miners/CpuminerJayddee4way.ps1
 $Path = ".\Bin\CPU-JayDDee\cpuminer-4way.exe"
 $Uri = "https://github.com/JayDDee/cpuminer-opt/files/1543780/cpuminer-opt-3.7.7-windows.zip"
+=======
+$Path = ".\Bin\CPU-JayDDee\cpuminer-avx2.exe"
+$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1753108/cpuminer-opt-3.8.3.1-windows.zip"
+>>>>>>> upstream/master:Miners/CpuminerJayddeeAvx2.ps1
 
 $Commands = [PSCustomObject]@{
     #"bitcore" = "" #Bitcore
@@ -24,7 +29,6 @@ $Commands = [PSCustomObject]@{
     #"neoscrypt" = "" #NeoScrypt
     #"nist5" = "" #Nist5
     #"pascal" = "" #Pascal
-    #"sia" = "" #Sia
     #"sib" = "" #Sib
     #"skein" = "" #Skein
     #"skunk" = "" #Skunk
