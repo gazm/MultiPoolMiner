@@ -40,5 +40,5 @@
   "Watchdog": "$Watchdog",
   "MinerStatusURL": "https://multipoolminer.io/monitor/miner.php",
   "MinerStatusKey": "$MinerStatusKey",
-  "SwitchingPrevention": "4"
+  "SwitchingPrevention": "7"
 }
