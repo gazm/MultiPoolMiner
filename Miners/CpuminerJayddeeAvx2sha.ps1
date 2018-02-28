@@ -1,12 +1,7 @@
 ﻿using module ..\Include.psm1
 
-<<<<<<< HEAD:Miners/CpuminerJayddeeSse42.ps1
-$Path = ".\Bin\CPU-JayDDee\cpuminer-sse42.exe"
-$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1543780/cpuminer-opt-3.7.7-windows.zip"
-=======
 $Path = ".\Bin\CPU-JayDDee\cpuminer-avx2-sha.exe"
 $Uri = "https://github.com/JayDDee/cpuminer-opt/files/1753108/cpuminer-opt-3.8.3.1-windows.zip"
->>>>>>> upstream/master:Miners/CpuminerJayddeeAvx2sha.ps1
 
 $Commands = [PSCustomObject]@{
     #"bitcore" = "" #Bitcore
