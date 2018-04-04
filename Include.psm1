@@ -44,10 +44,11 @@ Function Write-Log {
         }
 
         # Attempt to aquire mutex, waiting up to 1 second if necessary.  If aquired, write to the log file and release mutex.  Otherwise, display an error.
-        if($mutex.WaitOne(1000)) {
+        if ($mutex.WaitOne(1000)) {
             "$date $LevelText $Message" | Out-File -FilePath $filename -Append -Encoding ascii
             $mutex.ReleaseMutex()
-        } else {
+        }
+        else {
             Write-Error -Message "Log file is locked, unable to write message to log."
         }
     }
@@ -195,7 +196,7 @@ function Get-Stat {
     )
 
     if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
-    Get-ChildItem "Stats" | Where-Object Extension -NE ".ps1" | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
+    Get-ChildItem "Stats" -File | Where-Object Extension -NE ".ps1" | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
 }
 
 function Get-ChildItemContent {
@@ -222,7 +223,7 @@ function Get-ChildItemContent {
         return $Expression
     }
 
-    Get-ChildItem $Path | ForEach-Object {
+    Get-ChildItem $Path -File | ForEach-Object {
         $Name = $_.BaseName
         $Content = @()
         if ($_.Extension -eq ".ps1") {
