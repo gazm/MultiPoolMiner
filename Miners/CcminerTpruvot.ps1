@@ -30,7 +30,6 @@ $Commands = [PSCustomObject]@{
     "pascal" = "" #Pascal
     "penta" = "" #Pentablake
     "phi" = "" #PHI
-    "polytimos" = "" #Polytimos
     "scryptjane:nf" = "" #scryptjane:nf
     "sha256t" = "" #sha256t
     #"skein" = "" #Skein
