@@ -80,8 +80,8 @@ function Get-DeviceIDs {
     }
     else { # one miner instance per hw type
         $DeviceIDs."All" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
-        $DeviceIDs."3gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 3000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
-        $DeviceIDs."4gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 4000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | Foreach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+        $DeviceIDs."3gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 3000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
+        $DeviceIDs."4gb" = @($Devices.$Type | Where-Object {$Config.Devices.$Type.IgnoreHWModel -inotcontains $_.Name_Norm -and $Config.Miners.$Name.IgnoreHWModel -inotcontains $_.Name_Norm} | Where-Object {$_.GlobalMemsize -gt 4000000000}).DeviceIDs | Where-Object {$Config.Devices.$Type.IgnoreDeviceID -notcontains $_ -and $Config.Miners.$Name.IgnoreDeviceID -notcontains $_} | ForEach-Object {[Convert]::ToString(($_ + $DeviceIdOffset), $DeviceIdBase)}
     }
     $DeviceIDs
 }
@@ -141,7 +141,7 @@ function ConvertTo-CommandPerDeviceSet {
                 if ($Values -match "(?:[,; ]{1})") { # supported separators are listed in brackets: [,; ]{1}
                     $ValueSeparator = $Matches[0]
                     $RelevantValues = @()
-                    $DeviceIDs | Foreach-Object {
+                    $DeviceIDs | ForEach-Object {
                         $DeviceID = [Convert]::ToInt32($_, $DeviceIdBase) - $DeviceIdOffset
                         if ($Values.Split($ValueSeparator) | Select-Object -Index $DeviceId) {$RelevantValues += ($Values.Split($ValueSeparator) | Select-Object -Index $DeviceId)}
                         else {$RelevantValues += ""}
@@ -209,7 +209,7 @@ function Write-Log {
             $mutex.ReleaseMutex()
         }
         else {
-            Write-Error -Message "Log file is locked, unable to write message to log."
+            Write-Error -Message "Log file is locked, unable to write message to $FileName."
         }
     }
     End {}
@@ -351,12 +351,26 @@ function Set-Stat {
 function Get-Stat {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [String]$Name
     )
 
     if (-not (Test-Path "Stats")) {New-Item "Stats" -ItemType "directory" | Out-Null}
-    Get-ChildItem "Stats" -File | Where-Object Extension -NE ".ps1" | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
+
+    if ($Name) {
+        # Return single requested stat
+        Get-ChildItem "Stats" -File | Where-Object BaseName -EQ $Name | Get-Content | ConvertFrom-Json
+    } else {
+        # Return all stats
+        $Stats = [PSCustomObject]@{}
+        Get-ChildItem "Stats" | ForEach-Object {
+            $BaseName = $_.BaseName
+            $_ | Get-Content | ConvertFrom-Json | ForEach-Object {
+                $Stats | Add-Member $BaseName $_
+            }
+        }
+        Return $Stats
+    }
 }
 
 function Get-ChildItemContent {
@@ -413,6 +427,108 @@ function Get-ChildItemContent {
             }
         }
     }
+}
+
+function Get-ChildItemContentParallel {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [String]$Path,
+        [Parameter(Mandatory = $false)]
+        [Hashtable]$Parameters = @{}
+    )
+    $ScriptDir = (Get-Location).Path
+
+    # Determine how many threads to use based on how many cores the system has, but force it to be between 2 and 8.
+    $Threads = 2 # Default
+    $Threads = ((Get-CimInstance win32_processor).NumberOfLogicalProcessors | Measure-Object -Sum).Sum 
+    if ($Threads -lt 2) {$Threads = 2}
+    if ($Threads -gt 8) {$Threads = 8}
+
+    # Create a runspace pool with up to $Threads threads
+    $RunspaceCollection = @()
+    $RunspacePool = [runspacefactory]::CreateRunspacePool(1,$Threads)
+    $RunspacePool.Open()
+
+    # Setup code block to process each file - Include.psm1 has to be imported into each runspace
+    $ProcessItem = {
+        Param($ScriptDir, $File, $Parameters)
+        Set-Location $ScriptDir
+
+        function Invoke-ExpressionRecursive ($Expression) {
+            if ($Expression -is [String]) {
+                if ($Expression -match '(\$|")') {
+                    try {$Expression = Invoke-Expression $Expression}
+                    catch {$Expression = Invoke-Expression "`"$Expression`""}
+                }
+            }
+            elseif ($Expression -is [PSCustomObject]) {
+                $Expression | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | ForEach-Object {
+                    $Expression.$_ = Invoke-ExpressionRecursive $Expression.$_
+                }
+            }
+            return $Expression
+        }
+
+        $Name = $File.BaseName
+        $Content = @()
+        if ($File.Extension -eq ".ps1") {
+            $Content = & {
+                $Parameters.Keys | ForEach-Object {Set-Variable $_ $Parameters.$_}
+                & $File.FullName @Parameters
+            }
+        }
+        else {
+            $Content = & {
+                $Parameters.Keys | ForEach-Object {Set-Variable $_ $Parameters.$_}
+                try {
+                    ($File | Get-Content | ConvertFrom-Json) | ForEach-Object {Invoke-ExpressionRecursive $_}
+                }
+                catch [ArgumentException] {
+                    $null
+                }
+            }
+            if ($Content -eq $null) {$Content = $File | Get-Content}
+        }
+        $Content | ForEach-Object {
+            if ($_.Name) {
+                [PSCustomObject]@{Name = $_.Name; Content = $_}
+            }
+            else {
+                [PSCustomObject]@{Name = $Name; Content = $_}
+            }
+        }
+    }
+
+    # Get each requested file and process it in a runspace
+    Get-ChildItem $Path -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $Powershell = [powershell]::Create().AddScript($ProcessItem, $true).AddArgument($ScriptDir).AddArgument($_).AddArgument($Parameters)
+        $Powershell.RunspacePool = $RunSpacePool
+
+        # Add to the collection of runspaces
+        [Collections.ArrayList]$RunspaceCollection += New-Object -TypeName PSObject -Property @{
+            Runspace = $PowerShell.BeginInvoke()
+            Powershell = $Powershell
+        }
+    }
+
+    # Wait for all runspaces to finish running and get their data
+    While ($RunspaceCollection) {
+        ForEach($Runspace in $RunspaceCollection.ToArray()) {
+            if ($Runspace.Runspace.IsCompleted) {
+                # End the runspace and get the returned objects
+                $Runspace.PowerShell.EndInvoke($Runspace.Runspace)
+                # Cleanup the runspace
+                $Runspace.PowerShell.Dispose()
+                $RunspaceCollection.Remove($Runspace)
+            }
+        }
+    }
+    # Cleanup runspaces
+    $RunspacePool.Close()
+    $RunspacePool.Dispose()
+    Remove-Variable RunspacePool
+    Remove-Variable RunspaceCollection
 }
 
 filter ConvertTo-Hash { 
@@ -601,11 +717,13 @@ function Get-Algorithm {
         [String]$Algorithm = ""
     )
 
-    $Algorithms = Get-Content "Algorithms.txt" | ConvertFrom-Json
+    if(-not (Test-Path Variable:Script:Algorithms)) {
+        $Script:Algorithms = Get-Content "Algorithms.txt" | ConvertFrom-Json
+    }
 
     $Algorithm = (Get-Culture).TextInfo.ToTitleCase(($Algorithm -replace "-", " " -replace "_", " ")) -replace " "
 
-    if ($Algorithms.$Algorithm) {$Algorithms.$Algorithm}
+    if ($Script:Algorithms.$Algorithm) {$Script:Algorithms.$Algorithm}
     else {$Algorithm}
 }
 
@@ -616,11 +734,13 @@ function Get-Region {
         [String]$Region = ""
     )
 
-    $Regions = Get-Content "Regions.txt" | ConvertFrom-Json
-
+    if(-not (Test-Path Variable:Script:Regions)) {
+        $Script:Regions = Get-Content "Regions.txt" | ConvertFrom-Json
+    }
+    
     $Region = (Get-Culture).TextInfo.ToTitleCase(($Region -replace "-", " " -replace "_", " ")) -replace " "
 
-    if ($Regions.$Region) {$Regions.$Region}
+    if ($Script:Regions.$Region) {$Script:Regions.$Region}
     else {$Region}
 }
 
@@ -640,8 +760,6 @@ class Miner {
     [Array]$Algorithm = @()
     $Type
     $Index
-    $Device
-    $Device_Auto
     $Profit
     $Profit_Comparison
     $Profit_MarginOfError
@@ -659,6 +777,7 @@ class Miner {
     $Benchmarked
     $LogFile
     $Pool
+    $ShowMinerWindow
 
     [String[]]GetProcessNames() {
         return @(([IO.FileInfo]($this.Path | Split-Path -Leaf -ErrorAction Ignore)).BaseName)
@@ -682,8 +801,13 @@ class Miner {
         }
 
         if (-not $this.Process) {
-            $this.LogFile = $Global:ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(".\Logs\$($this.Name)-$($this.Port)_$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt")
-            $this.Process = Start-SubProcess -FilePath $this.Path -ArgumentList $this.Arguments -LogPath $this.LogFile -WorkingDirectory (Split-Path $this.Path) -Priority ($this.Type | ForEach-Object {if ($_ -eq "CPU") {-2}else {-1}} | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum)
+            if ($this.ShowMinerWindow) {
+                $this.Process = Start-Job ([ScriptBlock]::Create("Start-Process $(@{desktop = "powershell"; core = "pwsh"}.$Global:PSEdition) `"-command ```$Process = (Start-Process '$($this.Path)' '$($this.Arguments)' -WorkingDirectory '$(Split-Path $this.Path)' -WindowStyle Minimized -PassThru).Id; Wait-Process -Id `$PID; Stop-Process -Id ```$Process`" -WindowStyle Hidden -Wait"))
+            }
+            else {
+                $this.LogFile = $Global:ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(".\Logs\$($this.Name)-$($this.Port)_$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss").txt")
+                $this.Process = Start-SubProcess -FilePath $this.Path -ArgumentList $this.Arguments -LogPath $this.LogFile -WorkingDirectory (Split-Path $this.Path) -Priority ($this.Type | ForEach-Object {if ($_ -eq "CPU") {-2}else {-1}} | Measure-Object -Maximum | Select-Object -ExpandProperty Maximum)
+            }
 
             if ($this.Process | Get-Job -ErrorAction SilentlyContinue) {
                 $this.Status = [MinerStatus]::Running

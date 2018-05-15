@@ -1,24 +1,11 @@
- using module ..\Include.psm1
+﻿using module ..\Include.psm1
 
-$Path = ".\Bin\NVIDIA-Zealot\z-enemy.exe"
-$HashSHA256 = "59e413741711e2984a1911db003fee807941f9a9f838cb96ff050194bc74bfce"
-$Uri = "https://github.com/MultiPoolMiner/miner-binaries/releases/download/zenemy108/z-enemy-1.08-release.zip"
-#$ManualUri = "https://mega.nz/#!5WACFRTT!tV1vUsFdBIDqCzBrcMoXVR2G9YHD6xqct5QB2nBiuzM"
+$Path = ".\Bin\NVIDIA-PHI\ccminer.exe"
+$HashSHA256 = "6C3AFFABBD39566F4AE3B78CF55BFEA06BE98C1D48FDDB27DEE406DB87B7663F"
+$URI = "https://github.com/216k155/ccminer-phi-anxmod/releases/download/ccminer%2Fphi-1.0/ccminer-phi-1.0.zip"
 
 $Commands = [PSCustomObject]@{
-    "bitcore" = "" #Bitcore
-    "jha" = "" #JHA - NOT TESTED
-    "phi" = "" #PHI
-    "poly" = "" #Polytmos - NOT TESTED
-    "veltor" = "" #Veltor - NOT TESTED
-    "x12" = "" #X12 - NOT TESTED
-    "x14" = "" #X14 - NOT TESTED
-    "x16r" = "" #Rave
-    "x16s" = "" #Pigeon
-    # ASIC - never profitable 20/04/2018
-    #"cryptonight" = "" #CryptoNight - NOT TESTED
-    #"decred" = "" #Decred - NOT TESTED
-    #"vanilla" = "" #BlakeVanilla - NOT TESTED
+    "Phi" = "" #Phi Phi1612 LUX
 }
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
@@ -34,4 +21,4 @@ $Commands | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty 
         Port = 4068
         URI = $Uri
     }
-} 
+}

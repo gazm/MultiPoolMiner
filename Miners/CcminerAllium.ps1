@@ -1,28 +1,11 @@
-﻿using module ..\Include.psm1
+using module ..\Include.psm1
 
-$Path = ".\Bin\Lyra2RE2-NVIDIA\ccminer.exe"
-$HashSHA256 = "998AEBAA80CD6D2B758A5B4798D6AC929745B88D81735587798F616D7E2F3B23"
-$Uri = "https://github.com/nicehash/ccminer-nanashi/releases/download/1.7.6-r6/ccminer.zip"
+$Path = ".\Bin\NVIDIA-Allium\ccminer-x64.exe"
+$HashSHA256 = "70117C8CBADB642E5E1C587FA0CA3AE1B910FCC0A030CA8884750332DB89D95B"
+$Uri = "http://ccminer.org/preview/ccminer-x64-2.2.6-xmr-allium-cuda9.7z"
 
 $Commands = [PSCustomObject]@{
-    "blake2s"   = "" #Blake2s
-    "blakecoin" = "" #Blakecoin
-    "c11"       = "" #C11
-    "groestl"   = "" #Groestl
-    "keccak"    = "" #Keccak
-    "lyra2v2"   = "" #Lyra2RE2
-    "neoscrypt" = "" #NeoScrypt
-    "skein"     = "" #Skein
-    "x17"       = "" #X17
-    
-    # ASIC - never profitable 12/05/2018
-    #"decred"   = "" #Decred
-    #"myr-gr"   = "" #MyriadGroestl
-    #"nist5"    = "" #Nist5
-    #"qubit"    = "" #qubit
-    #"quark"    = "" #Quark
-    #"sib"      = "" #Sib
-
+    "allium" = "" #Allium
 }
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName
